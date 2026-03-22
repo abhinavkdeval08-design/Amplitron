@@ -2,6 +2,8 @@ name: CD - Release Build
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -19,23 +21,33 @@ jobs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
     - name: Get version
       id: get_version
       run: |
         if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
           echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-        else
+        elif [ "${{ github.ref_type }}" = "tag" ]; then
           echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        else
+          # Auto-release from main branch
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          DATE=$(date +%Y%m%d)
+          echo "version=dev-${DATE}-${SHORT_SHA}" >> $GITHUB_OUTPUT
         fi
 
-    - name: Create Release
+    - name: Create or Update Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
-        release_name: Amplitron ${{ steps.get_version.outputs.version }}
+        name: Amplitron ${{ steps.get_version.outputs.version }}
+        prerelease: ${{ github.ref_type != 'tag' }}
         body: |
           ## Amplitron Guitar Amp Simulator
           
@@ -114,14 +126,10 @@ jobs:
         7z a -tzip Amplitron-Windows-x64.zip Amplitron-Windows
 
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./release/Amplitron-Windows-x64.zip
-        asset_name: Amplitron-Windows-x64.zip
-        asset_content_type: application/zip
+        tag_name: ${{ needs.create-release.outputs.version }}
+        files: ./release/Amplitron-Windows-x64.zip
 
   build-macos:
     name: Build macOS
@@ -184,14 +192,10 @@ jobs:
         tar -czf Amplitron-macOS-Universal.tar.gz Amplitron.app
 
     - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./release/Amplitron-macOS-Universal.tar.gz
-        asset_name: Amplitron-macOS-Universal.tar.gz
-        asset_content_type: application/gzip
+        tag_name: ${{ needs.create-release.outputs.version }}
+        files: ./release/Amplitron-macOS-Universal.tar.gz
 
   build-linux:
     name: Build Linux
@@ -270,14 +274,10 @@ jobs:
 
     - name: Upload Release Asset (Linux)
       if: matrix.name == 'Ubuntu'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ./release/Amplitron-Linux-x64.tar.gz
-        asset_name: Amplitron-Linux-x64.tar.gz
-        asset_content_type: application/gzip
+        tag_name: ${{ needs.create-release.outputs.version }}
+        files: ./release/Amplitron-Linux-x64.tar.gz
 
   deploy-website:
     name: Deploy Download Page
