@@ -92,6 +92,7 @@ jobs:
           mingw-w64-x86_64-portaudio
           mingw-w64-x86_64-SDL2
           make
+          git
 
     - name: Setup ImGui
       shell: msys2 {0}
