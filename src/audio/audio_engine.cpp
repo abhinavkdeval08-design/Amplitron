@@ -32,6 +32,16 @@ void AudioEngine::add_effect(std::shared_ptr<Effect> effect) {
     effects_.push_back(std::move(effect));
 }
 
+void AudioEngine::insert_effect(int index, std::shared_ptr<Effect> effect) {
+    std::lock_guard<std::mutex> lock(effect_mutex_);
+    effect->set_sample_rate(sample_rate_);
+    if (index >= 0 && index < static_cast<int>(effects_.size())) {
+        effects_.insert(effects_.begin() + index, std::move(effect));
+    } else {
+        effects_.push_back(std::move(effect));
+    }
+}
+
 void AudioEngine::remove_effect(int index) {
     std::lock_guard<std::mutex> lock(effect_mutex_);
     if (index >= 0 && index < static_cast<int>(effects_.size())) {

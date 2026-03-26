@@ -95,6 +95,13 @@ public:
     void add_effect(std::shared_ptr<Effect> effect);
 
     /**
+     * @brief Insert an effect at a specific index in the chain (mutex-protected).
+     * @param index  Position to insert at. If index >= size, appends to the end.
+     * @param effect Shared pointer to the effect to insert.
+     */
+    void insert_effect(int index, std::shared_ptr<Effect> effect);
+
+    /**
      * @brief Remove the effect at @p index from the chain (mutex-protected).
      * @param index Zero-based position in the effect chain.
      */

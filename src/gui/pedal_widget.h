@@ -7,6 +7,7 @@
 namespace GuitarAmp {
 
 class CommandHistory;
+class AudioEngine;
 
 /**
  * @brief GUI widget for a single audio effect pedal.
@@ -19,10 +20,11 @@ class PedalWidget {
 public:
     /**
      * @brief Construct a PedalWidget.
+     * @param engine Reference to the audio engine.
      * @param effect Shared pointer to the effect this widget controls.
      * @param index  Position in the signal chain (used for ImGui IDs).
      */
-    PedalWidget(std::shared_ptr<Effect> effect, int index);
+    PedalWidget(AudioEngine& engine, std::shared_ptr<Effect> effect, int index);
 
     /**
      * @brief Render the pedal widget for one frame.
@@ -53,6 +55,7 @@ private:
     /** @brief Render a toggle switch (unused legacy helper). */
     void render_toggle(const char* label, bool* value);
 
+    AudioEngine& engine_;
     std::shared_ptr<Effect> effect_;
     int index_;
     CommandHistory* history_ = nullptr;

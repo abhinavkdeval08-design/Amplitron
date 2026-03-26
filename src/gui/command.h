@@ -61,9 +61,21 @@ public:
     AddEffectCommand(AudioEngine& engine, std::shared_ptr<Effect> effect)
         : engine_(engine), effect_(std::move(effect)) {}
 
-    /** @brief Append the effect to the engine's chain. */
+    /** @brief Append the effect to the engine's chain (before the amp if present). */
     void execute() override {
-        engine_.add_effect(effect_);
+        int amp_idx = -1;
+        auto& fx = engine_.effects();
+        for (int i = 0; i < static_cast<int>(fx.size()); ++i) {
+            if (std::strcmp(fx[i]->name(), "Amp Sim") == 0) {
+                amp_idx = i;
+                break;
+            }
+        }
+        if (amp_idx >= 0) {
+            engine_.insert_effect(amp_idx, effect_);
+        } else {
+            engine_.add_effect(effect_);
+        }
     }
 
     /** @brief Remove the previously added effect from the chain. */
@@ -194,14 +206,15 @@ class ParameterChangeCommand : public Command {
 public:
     /**
      * @brief Construct a ParameterChangeCommand.
+     * @param engine      Reference to the AudioEngine.
      * @param effect      Shared pointer to the target effect.
      * @param param_index Index of the parameter within the effect's param list.
      * @param old_value   Value before the change (used by undo).
      * @param new_value   Value after the change (used by execute).
      */
-    ParameterChangeCommand(std::shared_ptr<Effect> effect,
+    ParameterChangeCommand(AudioEngine& engine, std::shared_ptr<Effect> effect,
                            int param_index, float old_value, float new_value)
-        : effect_(std::move(effect)),
+        : engine_(engine), effect_(std::move(effect)),
           param_index_(param_index), old_value_(old_value), new_value_(new_value) {}
 
     /** @brief Set the parameter to new_value_. */
@@ -209,6 +222,12 @@ public:
         auto& params = effect_->params();
         if (param_index_ >= 0 && param_index_ < static_cast<int>(params.size())) {
             params[param_index_].value = new_value_;
+            int idx = -1;
+            auto& fx = engine_.effects();
+            for (int i = 0; i < static_cast<int>(fx.size()); ++i) {
+                if (fx[i] == effect_) { idx = i; break; }
+            }
+            if (idx >= 0) engine_.push_param_change(idx, param_index_, new_value_);
         }
     }
 
@@ -217,6 +236,12 @@ public:
         auto& params = effect_->params();
         if (param_index_ >= 0 && param_index_ < static_cast<int>(params.size())) {
             params[param_index_].value = old_value_;
+            int idx = -1;
+            auto& fx = engine_.effects();
+            for (int i = 0; i < static_cast<int>(fx.size()); ++i) {
+                if (fx[i] == effect_) { idx = i; break; }
+            }
+            if (idx >= 0) engine_.push_param_change(idx, param_index_, old_value_);
         }
     }
 
@@ -260,6 +285,7 @@ public:
     float new_value() const { return new_value_; }
 
 private:
+    AudioEngine& engine_;
     std::shared_ptr<Effect> effect_;
     int param_index_;
     float old_value_;

@@ -50,17 +50,17 @@ void PedalBoard::update_visible_pedals() {
 /** @brief Recreate PedalWidget list to match the engine's current effect chain. */
 void PedalBoard::rebuild_widgets() {
     // Remember which effects were visible before rebuild
-    std::set<std::string> visible_names;
+    std::set<Effect*> visible_ptrs;
     for (int idx : visible_indices_) {
         if (idx < static_cast<int>(widgets_.size())) {
-            visible_names.insert(widgets_[idx]->get_effect()->name());
+            visible_ptrs.insert(widgets_[idx]->get_effect().get());
         }
     }
     
     widgets_.clear();
     auto& effects = engine_.effects();
     for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
-        auto w = std::make_unique<PedalWidget>(effects[i], i);
+        auto w = std::make_unique<PedalWidget>(engine_, effects[i], i);
         w->set_history(&history_);
         widgets_.push_back(std::move(w));
     }
@@ -71,12 +71,11 @@ void PedalBoard::rebuild_widgets() {
         const char* name = effects[i]->name();
         bool is_amp = (std::strcmp(name, "Amp Sim") == 0);
         bool is_special = (std::strcmp(name, "Equalizer") == 0 || std::strcmp(name, "Reverb") == 0);
-        bool was_visible = visible_names.count(name) > 0;
+        bool was_visible = visible_ptrs.count(effects[i].get()) > 0;
         
         // Always show amps, EQ, and Reverb
-        // Show other effects if they were visible before, or on initial rebuild
-        // (visible_names empty means first build or post-clear — show everything)
-        if (is_amp || is_special || was_visible || (visible_names.empty() && !is_amp)) {
+        // Show other effects if they were visible before
+        if (is_amp || is_special || was_visible) {
             visible_indices_.insert(i);
         }
     }
@@ -139,10 +138,17 @@ void PedalBoard::render() {
 
 /** @brief Add an effect to the chain via undo system, rebuild widgets, and make it visible. */
 void PedalBoard::add_effect_and_show(std::shared_ptr<Effect> effect) {
+    auto effect_ptr = effect.get();
     history_.execute(std::make_unique<AddEffectCommand>(engine_, std::move(effect)));
     rebuild_widgets();
-    if (!engine_.effects().empty()) {
-        visible_indices_.insert(static_cast<int>(engine_.effects().size()) - 1);
+    
+    // Find the newly added effect and make it visible
+    auto& effects = engine_.effects();
+    for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
+        if (effects[i].get() == effect_ptr) {
+            visible_indices_.insert(i);
+            break;
+        }
     }
 }
 
@@ -303,20 +309,23 @@ void PedalBoard::render_signal_chain() {
         snprintf(dnd_id, sizeof(dnd_id), "##dnd_%d", i);
         ImGui::InvisibleButton(dnd_id, ImVec2(Theme::PEDAL_WIDTH, Theme::PEDAL_HEIGHT));
 
-        if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-            ImGui::SetDragDropPayload("PEDAL_REORDER", &i, sizeof(int));
-            ImGui::Text("Move %s", widgets_[i]->get_effect()->name());
-            ImGui::EndDragDropSource();
-        }
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PEDAL_REORDER")) {
-                int source_idx = *static_cast<const int*>(payload->Data);
-                if (source_idx != i) {
-                    history_.execute(std::make_unique<ReorderEffectCommand>(engine_, source_idx, i));
-                    rebuild_widgets();
-                }
+        bool is_amp = std::strcmp(widgets_[i]->get_effect()->name(), "Amp Sim") == 0;
+        if (!is_amp) {
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+                ImGui::SetDragDropPayload("PEDAL_REORDER", &i, sizeof(int));
+                ImGui::Text("Move %s", widgets_[i]->get_effect()->name());
+                ImGui::EndDragDropSource();
             }
-            ImGui::EndDragDropTarget();
+            if (ImGui::BeginDragDropTarget()) {
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("PEDAL_REORDER")) {
+                    int source_idx = *static_cast<const int*>(payload->Data);
+                    if (source_idx != i) {
+                        history_.execute(std::make_unique<ReorderEffectCommand>(engine_, source_idx, i));
+                        rebuild_widgets();
+                    }
+                }
+                ImGui::EndDragDropTarget();
+            }
         }
 
         // Connection dot between pedals

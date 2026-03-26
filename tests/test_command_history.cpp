@@ -174,7 +174,7 @@ TEST(ParameterChangeCommand_Execute) {
     float new_val = original + 1.0f;
 
     CommandHistory history;
-    history.execute(std::make_unique<ParameterChangeCommand>(fx, 0, original, new_val));
+    history.execute(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 0, original, new_val));
     ASSERT_NEAR(params[0].value, new_val, 0.001f);
 }
 
@@ -185,7 +185,7 @@ TEST(ParameterChangeCommand_Undo) {
     float new_val = original + 1.0f;
 
     CommandHistory history;
-    history.execute(std::make_unique<ParameterChangeCommand>(fx, 0, original, new_val));
+    history.execute(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 0, original, new_val));
     ASSERT_NEAR(params[0].value, new_val, 0.001f);
 
     history.undo();
@@ -200,13 +200,13 @@ TEST(ParameterChangeCommand_Coalescing) {
     CommandHistory history;
     // Simulate rapid knob turns — these should coalesce
     params[0].value = original + 0.1f;
-    history.push_executed(std::make_unique<ParameterChangeCommand>(fx, 0, original, original + 0.1f));
+    history.push_executed(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 0, original, original + 0.1f));
 
     params[0].value = original + 0.2f;
-    history.push_executed(std::make_unique<ParameterChangeCommand>(fx, 0, original + 0.1f, original + 0.2f));
+    history.push_executed(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 0, original + 0.1f, original + 0.2f));
 
     params[0].value = original + 0.3f;
-    history.push_executed(std::make_unique<ParameterChangeCommand>(fx, 0, original + 0.2f, original + 0.3f));
+    history.push_executed(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 0, original + 0.2f, original + 0.3f));
 
     // All three should have been coalesced into one entry
     ASSERT_EQ(history.undo_size(), 1);
@@ -226,10 +226,10 @@ TEST(ParameterChangeCommand_NoCoalescing_DifferentParams) {
 
     CommandHistory history;
     params[0].value = orig0 + 0.5f;
-    history.push_executed(std::make_unique<ParameterChangeCommand>(fx, 0, orig0, orig0 + 0.5f));
+    history.push_executed(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 0, orig0, orig0 + 0.5f));
 
     params[1].value = orig1 + 0.5f;
-    history.push_executed(std::make_unique<ParameterChangeCommand>(fx, 1, orig1, orig1 + 0.5f));
+    history.push_executed(std::make_unique<ParameterChangeCommand>(test_engine(), fx, 1, orig1, orig1 + 0.5f));
 
     // Different params should NOT coalesce
     ASSERT_EQ(history.undo_size(), 2);
