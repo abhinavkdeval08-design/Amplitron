@@ -291,7 +291,7 @@ jobs:
         if [ -d web-demo/build-web ]; then
           cp web-demo/build-web/* docs/demo/ 2>/dev/null || true
         elif [ -d web-demo ]; then
-          cp web-demo/*.html web-demo/*.js web-demo/*.wasm docs/demo/ 2>/dev/null || true
+          cp web-demo/*.html web-demo/*.js web-demo/*.wasm web-demo/*.data docs/demo/ 2>/dev/null || true
         fi
         echo "=== docs/demo contents ==="
         ls -la docs/demo/ 2>/dev/null || echo "(empty)"
