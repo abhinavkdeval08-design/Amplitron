@@ -6,32 +6,34 @@ This document explains the CI/CD pipeline and how to create releases.
 
 ### 1. CI Workflow (`.github/workflows/ci.yml`)
 
-**Triggers**: Push to `main` or `develop`, Pull Requests
+**Triggers**: Push to `main` or `develop`, Pull Requests to `develop`
 
 **What it does**:
-- Builds Amplitron on Windows, macOS, and Linux
-- Runs the full test suite (64+ tests)
-- Uploads test artifacts for debugging
+- Builds Amplitron on Windows, macOS, Linux, and Web (Emscripten)
+- Runs the full test suite (64+ tests) on all native platforms
+- Generates semantic version (`0.1.<commit_count>`)
+- Caches dependencies (apt packages, Emscripten SDK, ccache)
+- Uploads build artifacts (1-day retention)
 
 **Platforms**:
-- **Windows**: MSYS2/MinGW64
-- **macOS**: Homebrew dependencies
-- **Linux**: Ubuntu 22.04 with apt packages
+- **Windows**: MSYS2/MinGW64 with Ninja, ccache
+- **macOS**: Homebrew dependencies, dylib bundling
+- **Linux**: Ubuntu with apt packages
+- **Web**: Emscripten 3.1.51, WebAssembly + AudioWorklet
 
 ### 2. Release Workflow (`.github/workflows/release.yml`)
 
-**Triggers**: 
-- Git tags matching `v*.*.*` (e.g., `v1.0.0`)
-- Manual workflow dispatch
+**Triggers**: Automatically on successful CI workflow on `main` branch
 
 **What it does**:
-1. Creates a GitHub Release
-2. Builds platform-specific packages:
-   - **Windows**: `Amplitron-Windows-x64.zip` (includes all DLLs)
-   - **macOS**: `Amplitron-macOS-Universal.tar.gz` (app bundle)
-   - **Linux**: `Amplitron-Linux-x64.tar.gz` (with launcher script)
-3. Uploads binaries to the release
-4. Deploys the download page to GitHub Pages
+1. Creates a GitHub Release with version `v0.1.<commit_count>`
+2. Downloads build artifacts from the CI run
+3. Packages platform-specific installers:
+   - **Windows**: `Amplitron-Windows-Setup.exe` (NSIS installer with DLLs, shortcuts)
+   - **macOS**: `Amplitron-macOS.dmg` (app bundle with dylibs, ad-hoc codesigned)
+   - **Linux**: `Amplitron-Linux-x64.tar.gz` (binary + launcher script)
+4. Uploads installers to the release
+5. Deploys web demo and download page to GitHub Pages
 
 ## Creating a Release
 
@@ -52,24 +54,23 @@ This document explains the CI/CD pipeline and how to create releases.
    git push origin main
    ```
 
-### Step 2: Create and Push a Tag
+### Step 2: Push to `main`
+
+Releases are triggered automatically when CI passes on `main`. No manual tagging is required — the version is generated as `v0.1.<commit_count>`.
 
 ```bash
-# Create an annotated tag
-git tag -a v1.0.0 -m "Release v1.0.0 - Initial public release"
-
-# Push the tag to GitHub
-git push origin v1.0.0
+git push origin main
 ```
 
 ### Step 3: Wait for Automation
 
 GitHub Actions will automatically:
-- ✅ Build for all platforms
-- ✅ Run tests
-- ✅ Create the release
-- ✅ Upload binaries
-- ✅ Deploy website to https://sudip-mondal-2002.github.io/Amplitron/
+- ✅ Build for all platforms (Windows, macOS, Linux, Web)
+- ✅ Run tests (64+ tests)
+- ✅ Create the release with semantic version
+- ✅ Package platform-specific installers
+- ✅ Upload binaries to the release
+- ✅ Deploy website and web demo to https://amplitron.sudipmondal.co.in
 
 Monitor progress at: https://github.com/sudip-mondal-2002/Amplitron/actions
 
@@ -79,14 +80,9 @@ Monitor progress at: https://github.com/sudip-mondal-2002/Amplitron/actions
 2. Download and test each platform binary
 3. Verify the website is live
 
-## Manual Release (Workflow Dispatch)
+## Manual Release
 
-You can also trigger a release manually:
-
-1. Go to: https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml
-2. Click "Run workflow"
-3. Enter the version (e.g., `v1.0.0`)
-4. Click "Run workflow"
+To trigger a release manually, push to `main` and let CI complete. The release workflow is automatically triggered by a successful CI run on `main`. There is no manual workflow dispatch — releases are fully automated.
 
 ## GitHub Pages Setup
 
@@ -111,30 +107,32 @@ Commit and push changes - GitHub Pages will auto-deploy.
 
 ## Platform-Specific Packaging
 
-### Windows (`scripts/package_windows.ps1`)
+### Windows (NSIS Installer via `scripts/installer.nsi`)
 
-Creates a ZIP with:
+Creates `Amplitron-Windows-Setup.exe` containing:
 - `Amplitron.exe`
-- All MinGW runtime DLLs
+- MinGW runtime DLLs (`libgcc_s_seh-1.dll`, `libstdc++-6.dll`, `libwinpthread-1.dll`)
 - PortAudio and SDL2 DLLs
-- Assets and presets
-- README.txt
+- Assets
+- Start Menu and Desktop shortcuts
+- Uninstaller
 
-### macOS (`scripts/package_macos.sh`)
+### macOS (DMG via release workflow)
 
-Creates an app bundle with:
-- `Amplitron.app/Contents/MacOS/Amplitron`
-- `Info.plist` with proper metadata
-- Resources (assets, presets)
-- Tarball for distribution
+Creates `Amplitron-macOS.dmg` with:
+- `Amplitron.app` bundle (`Contents/MacOS/Amplitron`)
+- Bundled dylibs in `Contents/Frameworks/` (rpath-rewritten)
+- `Info.plist` with metadata and microphone usage description
+- App icon (icns)
+- Ad-hoc code signing
+- Applications symlink for drag-to-install
 
-### Linux (`scripts/package_linux.sh`)
+### Linux (`Amplitron-Linux-x64.tar.gz`)
 
 Creates a tarball with:
 - `amplitron` binary
-- `amplitron.sh` launcher (checks dependencies)
-- Assets and presets
-- README.txt with installation instructions
+- `amplitron.sh` launcher script
+- Assets and README
 
 ## Troubleshooting
 
@@ -160,16 +158,9 @@ Creates a tarball with:
 
 ## Version Numbering
 
-Use semantic versioning: `vMAJOR.MINOR.PATCH`
+Versions are auto-generated by CI as `v0.1.<commit_count>`, where `<commit_count>` is the total number of commits in the repository history. This ensures every push to `main` produces a unique, monotonically increasing version number.
 
-- **MAJOR**: Breaking changes
-- **MINOR**: New features (backward compatible)
-- **PATCH**: Bug fixes
-
-Examples:
-- `v1.0.0` - Initial release
-- `v1.1.0` - Added new effect
-- `v1.1.1` - Fixed bug in reverb
+The version is passed to CMake via `-DAMPLITRON_VERSION` and compiled into the binary, where it is displayed in the GUI and used for the release update checker.
 
 ## Contact
 

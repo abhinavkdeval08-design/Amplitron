@@ -30,9 +30,9 @@ Thank you for your interest in contributing to Amplitron! This document provides
 ### Pull Requests
 
 1. **Fork** the repository
-2. **Create a branch** from `main`:
+2. **Create a branch** from `develop`:
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout -b feature/your-feature-name develop
    ```
 3. **Make your changes**:
    - Follow the existing code style
@@ -57,7 +57,7 @@ Thank you for your interest in contributing to Amplitron! This document provides
 
 ### Prerequisites
 
-- C++17 compiler (GCC 7+, Clang 5+, MSVC 2017+)
+- C++17 compiler (GCC 8+, Clang 7+, MSVC 2019+)
 - CMake 3.16+
 - PortAudio
 - SDL2
@@ -130,16 +130,19 @@ TEST(effect_processes_without_nan) {
 
 ## Adding New Effects
 
-1. Create header in `src/audio/effects/`
+1. Create header and source in `src/audio/effects/`
 2. Inherit from `Effect` base class
 3. Implement required methods:
    - `process(float* buffer, int num_samples)`
+   - `set_sample_rate(int sample_rate)`
    - `reset()`
    - `name()`
    - `params()`
 4. Add effect color to `src/gui/theme.h`
-5. Register in `PresetManager::create_effect()`
-6. Add tests in `tests/test_effects.cpp`
+5. Register in `PresetManager::create_effect()` (`src/preset_manager.cpp`)
+6. Add source files to `APP_SOURCES` and `CORE_SOURCES` in `CMakeLists.txt`
+7. Add tests in `tests/test_effects.cpp`
+8. Include the header in `src/main.cpp` if it should appear in the default chain
 
 ## Documentation
 

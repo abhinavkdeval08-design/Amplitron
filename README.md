@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/sudip-mondal-2002/Amplitron/releases)
 
-Professional real-time guitar amplifier simulator with ultra-low latency, 9 studio-quality effects, and a beautiful visual pedal board interface. Built in C++17 with PortAudio, SDL2, and Dear ImGui.
+Professional real-time guitar amplifier simulator with ultra-low latency, 11 studio-quality effects, and a beautiful visual pedal board interface. Available as a native desktop app and a browser-based web demo. Built in C++17 with PortAudio, SDL2, and Dear ImGui.
 
 <a href="https://www.producthunt.com/products/amplitron?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-amplitron" target="_blank" rel="noopener noreferrer"><img alt="Amplitron - Poor man's guitar amp | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1105240&amp;theme=light&amp;t=1774378395088"></a>
 
@@ -34,10 +34,16 @@ Transform your computer into a complete guitar rig. Plug in your guitar via USB 
 | **Overdrive** | Tube-style asymmetric soft clipping with tone control |
 | **Distortion** | Hard clipping with tanh waveshaping and tone filter |
 | **Equalizer** | 3-band parametric EQ (Bass/Mid/Treble/Presence) using biquad filters |
+| **Amp Simulator** | Preamp models (Fender Twin, Marshall JCM800, Mesa Rectifier, Roland JC-120) with gain, tone stack, and saturation |
+| **Cabinet Sim** | Speaker cabinet emulation with low/high rolloff and resonance |
 | **Chorus** | LFO-modulated delay with rate and depth controls |
 | **Delay** | Up to 2 seconds, with feedback tone filtering |
 | **Reverb** | Schroeder reverb (4 comb + 2 allpass filters) with decay and damping |
-| **Cabinet Sim** | Speaker cabinet emulation with low/high rolloff and resonance |
+
+### Utilities
+| Tool | Description |
+|---|---|
+| **Chromatic Tuner** | YIN pitch detection algorithm with note name, octave, and cent offset display |
 
 ### Visual Pedal Board
 - **Drag-and-drop style** pedal chain — add, remove, and reorder effects
@@ -46,6 +52,11 @@ Transform your computer into a complete guitar rig. Plug in your guitar via USB 
 - **Footswitch toggle** — click to enable/bypass each pedal
 - **Horizontal scrolling** — supports large pedal chains
 - **Real-time level meters** — input and output with clipping indicators
+- **Spectrum analyzer** — real-time frequency analysis display
+- **Undo/redo** — full history tracking for all parameter and chain changes
+- **Preset system** — save and load pedal chains as JSON files
+- **WAV recording** — record processed output to WAV files
+- **Release update checker** — notifies when new versions are available on GitHub
 
 ---
 
@@ -218,10 +229,11 @@ make build
 - **Audio → Start/Stop** — toggle the audio stream
 
 ### Default Signal Chain
-The application starts with a sensible default chain:
+The application starts with a clean acoustic preset. Only EQ and Reverb are enabled by default — all other effects start bypassed:
 ```
-Input → Noise Gate → Compressor → Overdrive → EQ → Cabinet → Delay → Reverb → Output
+Input → Noise Gate* → Compressor* → Overdrive* → Distortion* → EQ → Chorus* → Delay* → Reverb → Cabinet* → Output
 ```
+(*bypassed by default — click the footswitch to enable)
 
 You can remove any pedal and add new ones in any order.
 
@@ -230,36 +242,82 @@ You can remove any pedal and add new ones in any order.
 ## Project Structure
 
 ```
-guitar-amp/
-├── CMakeLists.txt              # Build configuration
-├── Makefile                    # Convenience wrapper
+Amplitron/
+├── CMakeLists.txt                 # Build configuration
+├── Makefile                       # Convenience wrapper
 ├── README.md
+├── CONTRIBUTING.md                # Contribution guidelines
+├── DEPLOYMENT.md                  # CI/CD deployment guide
+├── AGENTS.md                      # System architecture doc
+├── CODE_OF_CONDUCT.md             # Contributor Covenant
+├── LICENSE                        # MIT License
+├── docs/
+│   ├── index.html                 # Download page (GitHub Pages)
+│   ├── PRESETS.md                 # Preset guide
+│   └── demo/                      # Web demo (deployed)
 ├── external/
-│   └── imgui/                  # Dear ImGui (fetched by setup script)
+│   └── imgui/                     # Dear ImGui v1.90.1 (fetched by setup)
+├── presets/                       # Example presets (JSON)
+│   ├── 01_Sparkling_Clean.json
+│   ├── 02_Classic_Rock_Crunch.json
+│   ├── 03_Modern_Metal_Lead.json
+│   └── 04_Ambient_Swells.json
 ├── scripts/
-│   ├── setup_dependencies.sh   # Linux/macOS dependency setup
-│   ├── setup_dependencies.ps1  # Windows dependency setup
-│   └── build_windows.ps1       # Windows build script
-└── src/
-    ├── main.cpp                # Entry point
-    ├── common.h                # Shared utilities, math helpers
-    ├── audio/
-    │   ├── audio_engine.h/cpp  # PortAudio wrapper, DSP pipeline
-    │   ├── effect.h            # Base effect interface
-    │   └── effects/
-    │       ├── noise_gate.*    # Noise gate
-    │       ├── compressor.*    # Dynamic range compressor
-    │       ├── overdrive.*     # Tube-style overdrive
-    │       ├── distortion.*    # Hard clipping distortion
-    │       ├── equalizer.*     # 3-band parametric EQ
-    │       ├── chorus.*        # Chorus modulation
-    │       ├── delay.*         # Digital delay with feedback
-    │       ├── reverb.*        # Schroeder reverb
-    │       └── cabinet_sim.*   # Speaker cabinet simulation
-    └── gui/
-        ├── gui_manager.h/cpp   # Window, ImGui setup, metering
-        ├── pedal_board.h/cpp   # Pedal chain management UI
-        └── pedal_widget.h/cpp  # Individual pedal rendering
+│   ├── setup_dependencies.sh      # Linux/macOS dependency setup
+│   ├── setup_dependencies.ps1     # Windows dependency setup
+│   ├── build_windows.ps1          # Windows build script
+│   ├── installer.nsi              # NSIS installer config
+│   ├── package_linux.sh
+│   ├── package_macos.sh
+│   └── package_windows.ps1
+├── src/
+│   ├── main.cpp                   # Entry point
+│   ├── common.h                   # Shared utilities, math helpers
+│   ├── preset_manager.h/cpp       # Preset save/load (JSON)
+│   ├── audio/
+│   │   ├── audio_engine.h/cpp     # Core DSP pipeline
+│   │   ├── audio_backend.h        # Abstract audio backend
+│   │   ├── audio_backend_portaudio.cpp  # Native desktop backend
+│   │   ├── audio_backend_sdl.cpp  # Web/Emscripten backend
+│   │   ├── effect.h               # Base effect interface
+│   │   ├── recorder.h/cpp         # WAV recording
+│   │   ├── spsc_queue.h           # Lock-free queue (audio→GUI)
+│   │   └── effects/
+│   │       ├── noise_gate.*       # Noise gate
+│   │       ├── compressor.*       # Dynamic range compressor
+│   │       ├── overdrive.*        # Tube-style overdrive
+│   │       ├── distortion.*       # Hard clipping distortion
+│   │       ├── equalizer.*        # 3-band parametric EQ
+│   │       ├── amp_simulator.*    # Amp model simulator (4 models)
+│   │       ├── cabinet_sim.*      # Speaker cabinet simulation
+│   │       ├── chorus.*           # Chorus modulation
+│   │       ├── delay.*            # Digital delay with feedback
+│   │       ├── reverb.*           # Schroeder reverb
+│   │       └── tuner.*            # Chromatic tuner (YIN algorithm)
+│   └── gui/
+│       ├── gui_manager.h/cpp      # Window, ImGui, main render loop
+│       ├── pedal_board.h/cpp      # Pedal chain management UI
+│       ├── pedal_widget.h/cpp     # Individual pedal rendering
+│       ├── command_history.h/cpp  # Undo/redo system
+│       ├── command.h              # Command interface
+│       ├── spectrum_analyzer.h/cpp # Real-time spectrum display
+│       ├── theme.h                # Color scheme & pedal colors
+│       ├── gl_setup.h             # OpenGL initialization
+│       ├── file_dialog.h/cpp      # File dialog interface
+│       ├── file_dialog_native.cpp # Native file dialogs
+│       └── file_dialog_web.cpp    # Web-based file dialogs
+├── tests/                         # 64+ test suite
+│   ├── test_framework.h           # Minimal test framework
+│   ├── test_main.cpp
+│   ├── test_common.cpp            # Utility function tests
+│   ├── test_effects.cpp           # All effects tested
+│   ├── test_preset_manager.cpp    # Preset I/O tests
+│   ├── test_recorder.cpp          # WAV recording tests
+│   ├── test_theme.cpp             # Color system tests
+│   └── test_command_history.cpp   # Undo/redo tests
+└── web/
+    ├── shell.html                 # Emscripten shell template
+    └── coi-serviceworker.js       # SharedArrayBuffer support
 ```
 
 ---
@@ -279,12 +337,14 @@ The audio callback runs at the highest priority available from PortAudio. The si
 Effects use `try_lock` on the mutex to avoid blocking the audio thread if the GUI is modifying the chain. This ensures glitch-free audio even during UI interaction.
 
 ### DSP Techniques Used
-- **Biquad filters** — for EQ bands (low shelf, peaking, high shelf)
+- **Biquad filters** — for EQ bands (low shelf, peaking, high shelf) and amp tone stacks
 - **One-pole filters** — for tone controls and parameter smoothing
 - **Schroeder reverb** — 4 parallel comb filters + 2 series allpass filters
 - **Waveshaping** — `tanh()` and polynomial soft clipping for drive effects
 - **Linear interpolation** — for fractional delay reads (chorus, delay)
-- **Envelope following** — for noise gate and compressor dynamics
+- **Envelope following** — for noise gate, compressor, and amp simulator dynamics
+- **YIN pitch detection** — for chromatic tuner (4096-sample window at 48kHz)
+- **Amp modeling** — per-model tone stacks, saturation curves, power sag simulation
 
 ---
 
@@ -356,34 +416,39 @@ cd build
 
 The test suite includes 64+ tests covering:
 - Core utility functions
-- All 9 audio effects
+- All 11 audio effects (including amp simulator and tuner)
 - Preset save/load/roundtrip
 - WAV recording
 - Theme and color system
+- Undo/redo command history
 
 ### CI/CD Pipeline
 
 Amplitron uses GitHub Actions for continuous integration and deployment:
 
-- **CI Workflow** (`.github/workflows/ci.yml`): Runs on every push/PR
-  - Builds on Windows, macOS, and Linux
-  - Runs full test suite on all platforms
-  - Uploads test artifacts
+- **CI Workflow** (`.github/workflows/ci.yml`): Runs on every push to `main`/`develop` and PRs to `develop`
+  - Builds on Windows (MSYS2/MinGW64), macOS (Homebrew), Linux (Ubuntu), and Web (Emscripten)
+  - Runs full test suite (64+ tests) on all native platforms
+  - Generates semantic version (`0.1.<commit_count>`)
+  - Uses dependency caching (apt, Emscripten SDK, ccache)
+  - Uploads build artifacts (1-day retention)
 
-- **Release Workflow** (`.github/workflows/release.yml`): Triggered on version tags
-  - Creates GitHub release
-  - Builds platform-specific packages (Windows ZIP, macOS .app, Linux tarball)
-  - Uploads release assets
-  - Deploys download page to GitHub Pages
+- **Release Workflow** (`.github/workflows/release.yml`): Triggered automatically on successful CI on `main`
+  - Creates GitHub Release with semantic version tag
+  - Packages platform-specific installers:
+    - **Windows**: NSIS installer (`Amplitron-Windows-Setup.exe`)
+    - **macOS**: DMG disk image (`Amplitron-macOS.dmg`) with ad-hoc code signing
+    - **Linux**: Tarball (`Amplitron-Linux-x64.tar.gz`) with launcher script
+  - Deploys web demo and download page to GitHub Pages
 
 ### Automatic Releases
 
 Every push to `main` automatically:
-- Builds for Windows, macOS, and Linux
+- Builds for Windows, macOS, Linux, and Web (Emscripten)
 - Runs the full test suite (64+ tests)
-- Creates a new release with version `dev-YYYYMMDD-<commit-sha>`
-- Uploads binaries for all platforms
-- Deploys the download page to GitHub Pages
+- Creates a new release with version `v0.1.<commit_count>`
+- Uploads platform installers to the release
+- Deploys the download page and web demo to GitHub Pages
 
 No manual tagging required — just push to `main` and get a release!
 
@@ -407,7 +472,7 @@ For bugs and feature requests, open an issue on GitHub.
 
 ## License
 
-This project is provided as-is for educational and personal use. The audio DSP algorithms are original implementations based on well-known techniques from the audio engineering literature.
+This project is licensed under the [MIT License](LICENSE). The audio DSP algorithms are original implementations based on well-known techniques from the audio engineering literature.
 
 **Dependencies:**
 - [PortAudio](http://www.portaudio.com/) — MIT License
