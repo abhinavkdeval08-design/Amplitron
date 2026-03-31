@@ -31,33 +31,26 @@ PedalBoard::PedalBoard(AudioEngine& engine, CommandHistory& history)
 /** @brief Default destructor. */
 PedalBoard::~PedalBoard() = default;
 
-/** @brief Update which pedals are visible based on current state. */
+/** @brief Update which pedals are visible based on current state.
+ *  Shows the Amp Sim and all enabled effects that precede it in the chain.
+ *  Post-amp effects are excluded from the pedal board. */
 void PedalBoard::update_visible_pedals() {
     visible_indices_.clear();
     auto& effects = engine_.effects();
-    
-    // Always show EQ and Reverb if they exist
+    int amp_idx = find_amp_index();
+
     for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
-        const char* name = effects[i]->name();
-        if (std::strcmp(name, "Equalizer") == 0 || std::strcmp(name, "Reverb") == 0) {
+        bool is_amp = (amp_idx >= 0 && i == amp_idx);
+        if (is_amp) {
+            visible_indices_.insert(i);
+        } else if (effects[i]->is_enabled() && (amp_idx < 0 || i < amp_idx)) {
             visible_indices_.insert(i);
         }
     }
-    
-    // Add any other pedals that were explicitly added (not just enabled)
-    // We'll track this in rebuild_widgets() when new effects are added
 }
 
 /** @brief Recreate PedalWidget list to match the engine's current effect chain. */
-void PedalBoard::rebuild_widgets() {
-    // Remember which effects were visible before rebuild
-    std::set<Effect*> visible_ptrs;
-    for (int idx : visible_indices_) {
-        if (idx < static_cast<int>(widgets_.size())) {
-            visible_ptrs.insert(widgets_[idx]->get_effect().get());
-        }
-    }
-    
+void PedalBoard::rebuild_widgets(bool /*show_all*/) {
     widgets_.clear();
     auto& effects = engine_.effects();
     for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
@@ -65,21 +58,7 @@ void PedalBoard::rebuild_widgets() {
         w->set_history(&history_);
         widgets_.push_back(std::move(w));
     }
-    
-    // Restore visibility and add any new effects
     update_visible_pedals();
-    for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
-        const char* name = effects[i]->name();
-        bool is_amp = (std::strcmp(name, "Amp Sim") == 0);
-        bool is_special = (std::strcmp(name, "Equalizer") == 0 || std::strcmp(name, "Reverb") == 0);
-        bool was_visible = visible_ptrs.count(effects[i].get()) > 0;
-        
-        // Always show amps, EQ, and Reverb
-        // Show other effects if they were visible before
-        if (is_amp || is_special || was_visible) {
-            visible_indices_.insert(i);
-        }
-    }
 }
 
 /** @brief Find the index of the current AmpSimulator in the effect chain (-1 if none). */
@@ -139,18 +118,8 @@ void PedalBoard::render() {
 
 /** @brief Add an effect to the chain via undo system, rebuild widgets, and make it visible. */
 void PedalBoard::add_effect_and_show(std::shared_ptr<Effect> effect) {
-    auto effect_ptr = effect.get();
     history_.execute(std::make_unique<AddEffectCommand>(engine_, std::move(effect)));
     rebuild_widgets();
-    
-    // Find the newly added effect and make it visible
-    auto& effects = engine_.effects();
-    for (int i = 0; i < static_cast<int>(effects.size()); ++i) {
-        if (effects[i].get() == effect_ptr) {
-            visible_indices_.insert(i);
-            break;
-        }
-    }
 }
 
 /** @brief Render the "+ Add Pedal" button and category popup with effect menu items.
@@ -263,6 +232,9 @@ void PedalBoard::render_amp_selector() {
 /** @brief Draw the signal flow line, render each pedal widget, and handle drag-and-drop reordering.
  *  Uses visibility set to determine which pedals to show. */
 void PedalBoard::render_signal_chain() {
+    // Refresh visibility every frame so toggling a pedal on/off takes effect immediately.
+    update_visible_pedals();
+
     // Build list of visible widget indices from visibility set
     std::vector<int> visible;
     for (int idx : visible_indices_) {

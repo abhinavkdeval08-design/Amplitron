@@ -149,7 +149,7 @@ bool GuiManager::load_preset_by_index(int index) {
         std::string display = preset_name_from_path(path);
         std::snprintf(preset_name_buf_, sizeof(preset_name_buf_), "%s", display.c_str());
         preset_status_msg_ = "Loaded: " + display;
-        if (pedal_board_) pedal_board_->rebuild_widgets();
+        if (pedal_board_) pedal_board_->rebuild_widgets(true);
         return true;
     }
 

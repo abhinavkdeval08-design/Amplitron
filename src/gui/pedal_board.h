@@ -31,8 +31,9 @@ public:
     /** @brief Render the toolbar and signal chain each frame. */
     void render();
 
-    /** @brief Recreate PedalWidget instances from the current engine effect list. */
-    void rebuild_widgets();
+    /** @brief Recreate PedalWidget instances from the current engine effect list.
+     *  @param show_all If true, all effects are made visible (used after preset load). */
+    void rebuild_widgets(bool show_all = false);
 
     /** @brief Whether only enabled pedals are shown (default true). */
     bool show_active_only() const { return show_active_only_; }
