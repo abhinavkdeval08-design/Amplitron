@@ -20,7 +20,7 @@ PitchShifter::PitchShifter() {
          "Pitch shift in semitones. Negative shifts down, positive shifts up. 12 = one octave."},
         {"Fine",  0.0f, -50.0f, 50.0f, 0.0f, "ct",
          "Fine-tune adjustment in cents (hundredths of a semitone) for precise detuning."},
-        {"Mix",   0.5f,   0.0f,  1.0f, 0.5f, "",
+        {"Mix",   0.0f,   0.0f,  1.0f, 0.0f, "",
          "Dry/wet blend. 0 = fully dry, 1 = fully pitch-shifted."},
     };
     set_sample_rate(DEFAULT_SAMPLE_RATE);

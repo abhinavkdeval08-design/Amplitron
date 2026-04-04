@@ -13,7 +13,7 @@ namespace GuitarAmp {
  * the pitch ratio. A raised-cosine (Hann) crossfade between the two taps
  * hides the grain boundary discontinuities.
  *
- * Controls: Shift (semitones), Fine (cents), Mix, Level.
+ * Controls: Shift (semitones), Fine (cents), Mix.
  */
 class PitchShifter : public Effect {
 public:

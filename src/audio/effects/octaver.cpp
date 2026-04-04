@@ -11,6 +11,18 @@ static constexpr int P_OCT_DOWN = 0;
 static constexpr int P_OCT_UP   = 1;
 static constexpr int P_DRY      = 2;
 
+// Hysteresis threshold for the flip-flop zero-crossing detector.
+// The divider only flips when prev_sample_ < -FLIP_HYSTERESIS and the current
+// sample > +FLIP_HYSTERESIS, preventing chatter caused by near-zero noise.
+//
+// Value choice: 0.002 ≈ -54 dBFS — comfortably above the noise floor of a
+// typical USB audio interface while remaining well below the smallest musically
+// significant guitar signal.  At this threshold the per-sample slope of the
+// slowest guitar fundamental (E2 ≈ 82 Hz at 48 kHz) still crosses the ±H band
+// reliably, so the divider tracks pitch without false negatives.  Tune upward
+// only if the target hardware has an unusually noisy input stage.
+static constexpr float FLIP_HYSTERESIS = 0.002f;
+
 Octaver::Octaver() {
     params_ = {
         {"Oct -1", 0.5f, 0.0f, 1.0f, 0.5f, "",
@@ -58,8 +70,11 @@ void Octaver::process(float* buffer, int num_samples) {
         }
 
         // --- Oct-1: Flip-flop divider ---
-        // Detect positive-going zero crossing
-        if (prev_sample_ <= 0.0f && dry > 0.0f) {
+        // Detect positive-going zero crossing with hysteresis: require the
+        // previous sample to have been clearly negative and the current sample
+        // to be clearly positive before toggling.  This suppresses chatter from
+        // near-zero noise that would otherwise cause false flips.
+        if (prev_sample_ < -FLIP_HYSTERESIS && dry > FLIP_HYSTERESIS) {
             flipflop_ = -flipflop_;
         }
         prev_sample_ = dry;

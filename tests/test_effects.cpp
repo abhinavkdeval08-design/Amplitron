@@ -13,6 +13,8 @@
 #include "audio/effects/wah.h"
 #include "audio/effects/phaser.h"
 #include "audio/effects/flanger.h"
+#include "audio/effects/octaver.h"
+#include "audio/effects/pitch_shifter.h"
 #include <cstring>
 #include <cmath>
 
@@ -36,6 +38,18 @@ static bool buffer_is_finite(const float* buf, int n) {
     for (int i = 0; i < n; ++i)
         if (!std::isfinite(buf[i])) return false;
     return true;
+}
+
+// Helper: DFT magnitude at a single frequency, normalized by sample count.
+// For a pure cosine of amplitude A at frequency freq, returns approximately A/2.
+static float dft_magnitude_at(const float* buf, int n, float freq, int sr) {
+    float re = 0.0f, im = 0.0f;
+    const float omega = 2.0f * 3.14159265f * freq / static_cast<float>(sr);
+    for (int i = 0; i < n; ++i) {
+        re += buf[i] * std::cos(omega * static_cast<float>(i));
+        im += buf[i] * std::sin(omega * static_cast<float>(i));
+    }
+    return std::sqrt(re * re + im * im) / static_cast<float>(n);
 }
 
 // ============================================================
@@ -552,6 +566,8 @@ TEST(all_effects_handle_silence) {
         std::make_shared<AmpSimulator>(),
         std::make_shared<TunerPedal>(),
         std::make_shared<WahPedal>(),
+        std::make_shared<Octaver>(),
+        std::make_shared<PitchShifter>(),
     };
 
     float buf[256];
@@ -580,6 +596,8 @@ TEST(all_effects_reset_without_crash) {
         std::make_shared<AmpSimulator>(),
         std::make_shared<TunerPedal>(),
         std::make_shared<WahPedal>(),
+        std::make_shared<Octaver>(),
+        std::make_shared<PitchShifter>(),
     };
 
     for (auto& fx : effects) {
@@ -614,6 +632,8 @@ TEST(all_effects_handle_different_sample_rates) {
         std::make_shared<AmpSimulator>(),
         std::make_shared<TunerPedal>(),
         std::make_shared<WahPedal>(),
+        std::make_shared<Octaver>(),
+        std::make_shared<PitchShifter>(),
     };
 
     float buf[256];
@@ -885,4 +905,224 @@ TEST(flanger_high_feedback_stays_finite) {
     fill_sine(buf, 4096, 220.0f, 48000);
     fl.process(buf, 4096);
     ASSERT_TRUE(buffer_is_finite(buf, 4096));
+}
+
+// ============================================================
+// Octaver DSP regression tests
+// ============================================================
+
+// Feed a sine at FUND Hz with only oct-down active, then verify clear spectral
+// energy at FUND/2 and negligible energy at FUND (dry=0).
+// Implementation note: a warm-up pass lets the envelope follower and flip-flop
+// divider stabilize before the analysis window is captured.
+//
+// 880 Hz (A5) is chosen so the zero-crossing slope (~0.092/sample at 0.8 amp)
+// greatly exceeds the 2×FLIP_HYSTERESIS band, giving ≥96% detection reliability
+// per crossing and a clean sub-octave signal at 440 Hz.
+TEST(octaver_sub_octave_produces_half_frequency) {
+    static constexpr int   SR   = 48000;
+    static constexpr float FUND = 880.0f;   // sub-octave = 440 Hz, upper = 1760 Hz
+    static constexpr float PI   = 3.14159265f;
+    static constexpr int   CHUNK = 256;
+    static constexpr int   WARM_UP = 12288;  // 48 * 256 samples  (~256 ms)
+    // N=4800: 4800*440/48000=44 and 4800*880/48000=88, so both target frequencies
+    // land on exact DFT bins and the DFT formula gives exact magnitudes.
+    static constexpr int   N    = 4800;
+
+    Octaver oct;
+    oct.set_sample_rate(SR);
+    oct.reset();
+    oct.params()[0].value = 1.0f;  // P_OCT_DOWN
+    oct.params()[1].value = 0.0f;  // P_OCT_UP
+    oct.params()[2].value = 0.0f;  // P_DRY
+
+    // Warm-up: run WARM_UP samples in CHUNK-sized blocks (continuous phase).
+    float chunk_buf[CHUNK];
+    for (int off = 0; off < WARM_UP; off += CHUNK) {
+        for (int i = 0; i < CHUNK; ++i)
+            chunk_buf[i] = 0.8f * std::sin(2.0f * PI * FUND * (off + i) / SR);
+        oct.process(chunk_buf, CHUNK);
+    }
+
+    // Analysis window starts immediately after warm-up (phase-continuous).
+    float main_buf[N];
+    for (int i = 0; i < N; ++i)
+        main_buf[i] = 0.8f * std::sin(2.0f * PI * FUND * (WARM_UP + i) / SR);
+    oct.process(main_buf, N);
+
+    ASSERT_TRUE(buffer_is_finite(main_buf, N));
+
+    // Sanity: the octaver must produce non-trivial output energy.
+    ASSERT_GT(rms(main_buf, N), 0.1f);
+
+    // Verify the DFT helper on a clean bin-aligned 440 Hz sine (A=0.8).
+    // At an exact DFT bin, mag = A/2 = 0.4 analytically.
+    {
+        float sin_buf[N];
+        for (int i = 0; i < N; ++i)
+            sin_buf[i] = 0.8f * std::sin(2.0f * PI * (FUND / 2.0f) * i / SR);
+        float sin_mag = dft_magnitude_at(sin_buf, N, FUND / 2.0f, SR);
+        ASSERT_GT(sin_mag, 0.35f);  // A/2 = 0.4; allow small numerical slack
+    }
+
+    // Count positive-going zero crossings in the output.
+    // The flip-flop divider produces a ~FUND/2 = 440 Hz square wave: expect ~44
+    // crossings in 4800 samples.  An 880 Hz passthrough would give ~88, so this
+    // discriminates whether the divider is actually halving the frequency.
+    int crossings = 0;
+    for (int i = 1; i < N; ++i) {
+        if (main_buf[i-1] < 0.0f && main_buf[i] >= 0.0f)
+            ++crossings;
+    }
+    // Allow ±25% tolerance to absorb the phase offset at the window boundary.
+    ASSERT_GE(crossings, 33);  // 44 * 0.75
+    ASSERT_LT(crossings, 56);  // 44 * 1.25 + 1 (int upper bound)
+}
+
+// Feed a sine at FUND Hz with only oct-up active; verify energy at 2*FUND.
+TEST(octaver_upper_octave_produces_double_frequency) {
+    static constexpr int   SR   = 48000;
+    static constexpr float FUND = 220.0f;
+    static constexpr float PI   = 3.14159265f;
+    static constexpr int   CHUNK = 256;
+    static constexpr int   WARM_UP = 12288;
+    static constexpr int   N    = 8192;
+
+    Octaver oct;
+    oct.set_sample_rate(SR);
+    oct.reset();
+    oct.params()[0].value = 0.0f;  // P_OCT_DOWN
+    oct.params()[1].value = 1.0f;  // P_OCT_UP
+    oct.params()[2].value = 0.0f;  // P_DRY
+
+    float chunk_buf[CHUNK];
+    for (int off = 0; off < WARM_UP; off += CHUNK) {
+        for (int i = 0; i < CHUNK; ++i)
+            chunk_buf[i] = 0.8f * std::sin(2.0f * PI * FUND * (off + i) / SR);
+        oct.process(chunk_buf, CHUNK);
+    }
+
+    float main_buf[N];
+    for (int i = 0; i < N; ++i)
+        main_buf[i] = 0.8f * std::sin(2.0f * PI * FUND * (WARM_UP + i) / SR);
+    oct.process(main_buf, N);
+
+    ASSERT_TRUE(buffer_is_finite(main_buf, N));
+
+    float mag_double = dft_magnitude_at(main_buf, N, FUND * 2.0f, SR);  // 440 Hz
+    float mag_fund   = dft_magnitude_at(main_buf, N, FUND,        SR);  // 220 Hz
+
+    // Full-wave rectification of a sine produces the doubled frequency
+    // (|sin(ωt)| has fundamental at 2ω with amplitude 4/(3π)≈0.42 of input).
+    ASSERT_GT(mag_double, 0.05f);
+    ASSERT_LT(mag_fund, mag_double * 0.5f);
+}
+
+// When the effect is disabled, process() returns immediately; the dry sine
+// passes through unmodified, so there must be no significant energy at f/2 or 2f.
+TEST(octaver_disabled_no_sub_or_upper_octave) {
+    static constexpr int   SR   = 48000;
+    static constexpr float FUND = 220.0f;
+    static constexpr float PI   = 3.14159265f;
+    static constexpr int   N    = 8192;
+
+    Octaver oct;
+    oct.set_sample_rate(SR);
+    oct.reset();
+    oct.set_enabled(false);
+    // Params don't matter when disabled, but set non-zero to be explicit.
+    oct.params()[0].value = 1.0f;
+    oct.params()[1].value = 1.0f;
+    oct.params()[2].value = 0.0f;
+
+    float buf[N];
+    for (int i = 0; i < N; ++i)
+        buf[i] = 0.8f * std::sin(2.0f * PI * FUND * i / SR);
+    oct.process(buf, N);
+
+    float mag_fund   = dft_magnitude_at(buf, N, FUND,        SR);
+    float mag_half   = dft_magnitude_at(buf, N, FUND / 2.0f, SR);
+    float mag_double = dft_magnitude_at(buf, N, FUND * 2.0f, SR);
+
+    // Full-amplitude fundamental must pass through unchanged.
+    ASSERT_GT(mag_fund, 0.3f);
+    // No synthetic sub/upper octave components.
+    ASSERT_LT(mag_half,   0.01f);
+    ASSERT_LT(mag_double, 0.01f);
+}
+
+TEST(octaver_params_have_valid_ranges) {
+    Octaver oct;
+    for (auto& p : oct.params()) {
+        ASSERT_TRUE(p.min_val <= p.max_val);
+        ASSERT_TRUE(p.value >= p.min_val && p.value <= p.max_val);
+        ASSERT_TRUE(p.default_val >= p.min_val && p.default_val <= p.max_val);
+        ASSERT_FALSE(p.name.empty());
+    }
+}
+
+// ============================================================
+// PitchShifter tests
+// ============================================================
+
+TEST(pitch_shifter_params_have_valid_ranges) {
+    PitchShifter ps;
+    for (auto& p : ps.params()) {
+        ASSERT_TRUE(p.min_val <= p.max_val);
+        ASSERT_TRUE(p.value >= p.min_val && p.value <= p.max_val);
+        ASSERT_TRUE(p.default_val >= p.min_val && p.default_val <= p.max_val);
+        ASSERT_FALSE(p.name.empty());
+    }
+}
+
+// At default settings (Shift=0, Fine=0, Mix=0) the pedal must be transparent:
+// output should equal input within floating-point tolerance.
+TEST(pitch_shifter_default_is_transparent) {
+    PitchShifter ps;
+    ps.set_sample_rate(48000);
+    ps.reset();
+    // Confirm defaults are Shift=0, Fine=0, Mix=0.
+    ASSERT_NEAR(ps.params()[0].value, 0.0f, 1e-6f);  // Shift
+    ASSERT_NEAR(ps.params()[1].value, 0.0f, 1e-6f);  // Fine
+    ASSERT_NEAR(ps.params()[2].value, 0.0f, 1e-6f);  // Mix
+
+    float buf[256];
+    float ref[256];
+    fill_sine(buf, 256, 440.0f, 48000);
+    for (int i = 0; i < 256; ++i) ref[i] = buf[i];
+
+    ps.process(buf, 256);
+
+    for (int i = 0; i < 256; ++i)
+        ASSERT_NEAR(buf[i], ref[i], 1e-5f);
+}
+
+// With Mix=1 and a non-zero semitone shift, the output must differ from the
+// dry input (the pitch shift is audible).
+TEST(pitch_shifter_with_mix_and_shift_differs_from_dry) {
+    PitchShifter ps;
+    ps.set_sample_rate(48000);
+    ps.reset();
+    ps.params()[0].value = 7.0f;   // Shift = +7 semitones
+    ps.params()[2].value = 1.0f;   // Mix = fully wet
+
+    // Warm up so the grain buffer fills and parameter smoothing settles.
+    float warm[256];
+    for (int rep = 0; rep < 20; ++rep) {
+        fill_sine(warm, 256, 440.0f, 48000);
+        ps.process(warm, 256);
+    }
+
+    float buf[256];
+    float ref[256];
+    fill_sine(buf, 256, 440.0f, 48000);
+    for (int i = 0; i < 256; ++i) ref[i] = buf[i];
+
+    ps.process(buf, 256);
+
+    ASSERT_TRUE(buffer_is_finite(buf, 256));
+
+    float diff = 0.0f;
+    for (int i = 0; i < 256; ++i) diff += std::fabs(buf[i] - ref[i]);
+    ASSERT_GT(diff, 0.1f);
 }

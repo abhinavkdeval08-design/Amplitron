@@ -29,7 +29,7 @@ private:
 
     // Oct-1 state: flip-flop divider
     float prev_sample_ = 0.0f;       // previous sample for zero-crossing detection
-    float flipflop_ = 1.0f;          // +1 or -1, toggles on positive zero crossings
+    float flipflop_ = 1.0f;          // +1 or -1, toggles on hysteresis-gated positive zero crossings
 
     // Oct+1 state: DC blocker for full-wave rectified signal
     float dc_x1_ = 0.0f;             // previous input to DC blocker
