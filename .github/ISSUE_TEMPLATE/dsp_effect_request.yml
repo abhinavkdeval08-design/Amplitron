@@ -1,0 +1,80 @@
+name: DSP Effect Request
+description: Request a new guitar effect or DSP processing agent
+labels: ["enhancement", "dsp"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request a new effect pedal or DSP processing node for the Amplitron pedal board.
+
+  - type: input
+    id: effect_name
+    attributes:
+      label: Effect Name
+      description: The name of the effect (e.g. Tremolo, Ring Modulator, Tape Delay).
+      placeholder: e.g. Tremolo
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Effect Category
+      description: What category does this effect fall into?
+      options:
+        - Dynamic Range (Gate, Compressor, Limiter, Expander)
+        - Saturation & Harmonics (Overdrive, Distortion, Fuzz, Boost)
+        - Frequency Shaping (EQ, Filter, Wah)
+        - Amp / Cabinet Simulation
+        - Time & Spatial (Delay, Reverb, Echo)
+        - Modulation (Chorus, Flanger, Phaser, Tremolo, Vibrato)
+        - Pitch (Octaver, Harmonizer, Pitch Shifter)
+        - Utility (Tuner, Volume, Pan, Looper)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Effect Description
+      description: Describe what this effect does sonically and how it works at a high level.
+      placeholder: |
+        Tremolo modulates the amplitude of the signal using an LFO, creating a rhythmic volume pulsing effect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: parameters
+    attributes:
+      label: Suggested Parameters
+      description: List the knobs/parameters the effect should expose.
+      placeholder: |
+        - Rate (Hz): LFO speed
+        - Depth (%): Modulation depth
+        - Wave Shape: Sine / Square / Triangle
+        - Mix (%): Wet/dry blend
+    validations:
+      required: true
+
+  - type: textarea
+    id: algorithm
+    attributes:
+      label: Algorithm / Reference (optional)
+      description: |
+        Any known algorithm, DSP reference, or real-world hardware unit this should be modeled after.
+        Links to papers, schematics, or open-source references are welcome.
+      placeholder: e.g. Based on the MXR Phase 90 topology; see DAFX book chapter 7.
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Musical Use Case
+      description: What genres, playing styles, or scenarios would benefit from this effect?
+      placeholder: e.g. Clean country picking, surf rock, post-rock ambient swells.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any audio examples, demos, or other context that helps illustrate the sound.

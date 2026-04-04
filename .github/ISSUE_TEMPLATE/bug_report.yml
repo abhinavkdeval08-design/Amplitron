@@ -1,0 +1,95 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Amplitron
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill in as much detail as possible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of the bug.
+      placeholder: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Launch Amplitron
+        2. Add effect '...'
+        3. Set parameter '...' to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Area
+      description: Which part of the application is affected?
+      options:
+        - Audio Engine / DSP Pipeline
+        - GUI / Pedal Board
+        - Specific Effect (describe below)
+        - Preset Manager
+        - Spectrum Analyzer
+        - Recorder
+        - Tuner
+        - Undo/Redo
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: effect
+    attributes:
+      label: Effect Name (if applicable)
+      description: If the bug is in a specific effect, name it here (e.g. Reverb, WahPedal).
+      placeholder: e.g. Reverb
+
+  - type: textarea
+    id: audio_setup
+    attributes:
+      label: Audio Setup
+      description: Describe your audio hardware and configuration.
+      placeholder: |
+        - Interface: Focusrite Scarlett 2i2
+        - Sample Rate: 48000 Hz
+        - Buffer Size: 128 samples
+        - OS: macOS 14.x / Linux Ubuntu 24.04 / Windows 11
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output
+      description: Paste any relevant terminal output or error messages.
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or audio recordings that help illustrate the problem.
