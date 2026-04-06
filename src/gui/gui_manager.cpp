@@ -104,6 +104,8 @@ bool GuiManager::initialize(int width, int height) {
         char* base_path = SDL_GetBasePath();
         if (base_path) {
             try_font(std::string(base_path) + "assets/fonts/Roboto-Medium.ttf");
+            // macOS app bundle: executable is in Contents/MacOS/, assets in Contents/Resources/
+            try_font(std::string(base_path) + "../Resources/assets/fonts/Roboto-Medium.ttf");
             SDL_free(base_path);
         }
         try_font("assets/fonts/Roboto-Medium.ttf");

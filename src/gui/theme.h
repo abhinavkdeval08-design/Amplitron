@@ -131,12 +131,12 @@ inline std::string formatParameterValue(float value, const std::string& unit) {
 
 // --- Spacing / Layout ---
 constexpr float PEDAL_WIDTH         = 190.0f;
-constexpr float PEDAL_HEIGHT        = 340.0f;
+constexpr float PEDAL_HEIGHT        = 360.0f;
 constexpr float KNOB_RADIUS         = 20.0f;
 constexpr float KNOB_HIT_MULT       = 2.2f;
 constexpr float KNOB_SPACING_X      = 85.0f;   // horizontal distance between knob columns
-constexpr float KNOB_SPACING_Y      = 72.0f;   // vertical distance between knob rows
-constexpr float KNOB_Y_START        = 55.0f;   // knob area top offset from pedal top
+constexpr float KNOB_SPACING_Y      = 95.0f;   // vertical distance between knob rows
+constexpr float KNOB_Y_START        = 70.0f;   // knob area top offset from pedal top
 constexpr float SWITCH_BOTTOM_OFFSET = 55.0f;  // footswitch distance from pedal bottom
 constexpr float ROUNDING_SM   = 4.0f;
 constexpr float ROUNDING_MD   = 8.0f;

@@ -570,7 +570,7 @@ bool PedalWidget::render() {
         ImVec2 val_size = ImGui::CalcTextSize(val_display.c_str());
         ImGui::SetCursorScreenPos(ImVec2(
             knob_center.x - val_size.x * 0.5f,
-            knob_center.y - knob_radius - 14));
+            knob_center.y - knob_radius - 20));
         ImGui::PushStyleColor(ImGuiCol_Text,
             is_active ? Theme::GoldHot() :
                         Theme::TextDim());

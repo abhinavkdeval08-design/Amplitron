@@ -23,6 +23,16 @@ void GuiSettings::render(bool& show) {
     ImGui::Text("%s", engine_.get_output_device_name().c_str());
     ImGui::EndChild();
 
+    const std::string& dev_error = engine_.get_last_error();
+    if (!dev_error.empty()) {
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "Device error: %s", dev_error.c_str());
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Dismiss")) {
+            engine_.clear_error();
+        }
+    }
+
     ImGui::Spacing();
 
     // --- Latency settings ---
