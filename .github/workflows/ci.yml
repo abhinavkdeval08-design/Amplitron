@@ -467,6 +467,12 @@ jobs:
         COUNT=$(git rev-list --count HEAD)
         echo "version=0.1.${COUNT}" >> $GITHUB_OUTPUT
 
+    - name: Cache SDL2 FetchContent
+      uses: actions/cache@v5
+      with:
+        path: build-ios/_deps
+        key: ios-sdl2-deps-2.30.12-${{ runner.os }}
+
     - name: Configure (CMake → Xcode)
       run: |
         mkdir -p build-ios
@@ -475,6 +481,7 @@ jobs:
           -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 \
           -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
           -DAMPLITRON_VERSION="${{ steps.version.outputs.version }}" \
+          -DFETCHCONTENT_UPDATES_DISCONNECTED=ON \
           -G Xcode \
           -S . -B build-ios
 

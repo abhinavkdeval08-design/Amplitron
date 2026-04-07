@@ -9,8 +9,8 @@ This document explains the CI/CD pipeline and how to create releases.
 **Triggers**: Push to `main` or `develop`, Pull Requests to `develop`
 
 **What it does**:
-- Builds Amplitron on Windows, macOS, Linux, and Web (Emscripten)
-- Runs the full test suite (105+ tests) on all native platforms
+- Builds Amplitron on Windows, macOS, Linux, Android, iOS, and Web (Emscripten)
+- Runs the full test suite (105+ tests) on all native desktop platforms
 - Generates semantic version (`0.1.<commit_count>`)
 - Caches dependencies (apt packages, Emscripten SDK, ccache)
 - Uploads build artifacts (1-day retention)
@@ -19,6 +19,8 @@ This document explains the CI/CD pipeline and how to create releases.
 - **Windows**: MSYS2/MinGW64 with Ninja, ccache
 - **macOS**: Homebrew dependencies, dylib bundling
 - **Linux**: Ubuntu with apt packages
+- **Android**: NDK r27, Gradle, produces release APK
+- **iOS**: Xcode (iOS Simulator), produces `.ipa` via Payload zip
 - **Web**: Emscripten 3.1.51, WebAssembly + AudioWorklet
 
 ### 2. Release Workflow (`.github/workflows/release.yml`)
@@ -32,6 +34,8 @@ This document explains the CI/CD pipeline and how to create releases.
    - **Windows**: `Amplitron-Windows-Setup.exe` (NSIS installer with DLLs, shortcuts)
    - **macOS**: `Amplitron-macOS.dmg` (app bundle with dylibs, ad-hoc codesigned)
    - **Linux**: `Amplitron-Linux-x64.tar.gz` (binary + launcher script)
+   - **Android**: `Amplitron-Android.apk` (renamed from Gradle release output)
+   - **iOS**: `Amplitron-iOS.ipa` (Payload zip of the simulator `.app` bundle)
 4. Uploads installers to the release
 5. Deploys web demo and download page to GitHub Pages
 
@@ -65,8 +69,8 @@ git push origin main
 ### Step 3: Wait for Automation
 
 GitHub Actions will automatically:
-- ✅ Build for all platforms (Windows, macOS, Linux, Web)
-- ✅ Run tests (105+ tests)
+- ✅ Build for all platforms (Windows, macOS, Linux, Android, iOS, Web)
+- ✅ Run tests (105+ tests on desktop platforms)
 - ✅ Create the release with semantic version
 - ✅ Package platform-specific installers
 - ✅ Upload binaries to the release
@@ -133,6 +137,25 @@ Creates a tarball with:
 - `amplitron` binary
 - `amplitron.sh` launcher script
 - Assets and README
+
+### Android (`Amplitron-Android.apk`)
+
+Built with Gradle + Android NDK r27. The CI produces an unsigned release APK which is renamed to `Amplitron-Android.apk`. Users install it by enabling **Settings → Install unknown apps** for their browser or file manager.
+
+### iOS (`Amplitron-iOS.ipa`)
+
+Built with CMake → Xcode for the iOS Simulator target (arm64, no code signing). The CI packages the `.app` bundle into an IPA using the standard Payload zip format:
+```
+Amplitron.ipa
+└── Payload/
+    └── Amplitron.app/
+```
+
+**Installation via AltStore** (free, no paid developer account needed):
+1. Install [AltStore](https://altstore.io) on your iPhone (requires a Mac or PC once)
+2. Open the [latest release](https://github.com/sudip-mondal-2002/Amplitron/releases/latest) in Safari on your iPhone and tap `Amplitron-iOS.ipa`
+3. Tap **Share → AltStore** to install
+4. AltStore silently refreshes the 7-day certificate while on the same Wi-Fi as your computer — no action needed from the user
 
 ## Troubleshooting
 

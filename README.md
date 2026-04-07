@@ -3,13 +3,32 @@
 [![CI Build](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml/badge.svg)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/ci.yml)
 [![Release](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml/badge.svg)](https://github.com/sudip-mondal-2002/Amplitron/actions/workflows/release.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/sudip-mondal-2002/Amplitron/releases)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue)](https://github.com/sudip-mondal-2002/Amplitron/releases)
 
-Professional real-time guitar amplifier simulator with ultra-low latency, 16 studio-quality effects, and a beautiful visual pedal board interface. Available as a native desktop app and a browser-based web demo. Built in C++17 with PortAudio, SDL2, and Dear ImGui.
+Professional real-time guitar amplifier simulator with ultra-low latency, 16 studio-quality effects, and a beautiful visual pedal board interface. Available as a native desktop app, Android APK, iOS app, and a browser-based web demo. Built in C++17 with PortAudio, SDL2, and Dear ImGui.
 
 <a href="https://www.producthunt.com/products/amplitron?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-amplitron" target="_blank" rel="noopener noreferrer"><img alt="Amplitron - Poor man's guitar amp | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1105240&amp;theme=light&amp;t=1774378395088"></a>
 
 **[Download Latest Release](https://github.com/sudip-mondal-2002/Amplitron/releases/latest)** | **[Visit Website](https://sudip-mondal-2002.github.io/Amplitron/)**
+
+### Platform Downloads
+
+| Platform | File | Notes |
+|----------|------|-------|
+| Windows 10/11 | `Amplitron-Windows-Setup.exe` | Run the installer |
+| macOS 10.15+ | `Amplitron-macOS.dmg` | Drag to Applications; right-click → Open on first launch |
+| Linux x64 | `Amplitron-Linux-x64.tar.gz` | Extract and run `amplitron.sh` |
+| Android 8.0+ | `Amplitron-Android.apk` | Enable "Install unknown apps" in Settings |
+| iOS 15.0+ | `Amplitron-iOS.ipa` | See [iOS installation](#ios-installation-altstore) below |
+
+#### iOS Installation (AltStore)
+
+Apple does not allow installing apps outside the App Store without a paid developer certificate, but [AltStore](https://altstore.io) makes sideloading transparent:
+
+1. Install [AltStore](https://altstore.io) on your iPhone (requires a Mac or PC once for setup)
+2. On your iPhone, open the [latest release](https://github.com/sudip-mondal-2002/Amplitron/releases/latest) in Safari and tap `Amplitron-iOS.ipa`
+3. Tap **Share → AltStore** to install
+4. AltStore auto-refreshes the app certificate in the background as long as your phone and computer are on the same Wi-Fi once a week — no re-installs needed
 
 ## 🎬 Demo Video
 
@@ -446,8 +465,8 @@ The test suite includes 105+ tests covering:
 Amplitron uses GitHub Actions for continuous integration and deployment:
 
 - **CI Workflow** (`.github/workflows/ci.yml`): Runs on every push to `main`/`develop` and PRs to `develop`
-  - Builds on Windows (MSYS2/MinGW64), macOS (Homebrew), Linux (Ubuntu), and Web (Emscripten)
-  - Runs full test suite (105+ tests) on all native platforms
+  - Builds on Windows (MSYS2/MinGW64), macOS (Homebrew), Linux (Ubuntu), Android (NDK r27), iOS (Xcode Simulator), and Web (Emscripten)
+  - Runs full test suite (105+ tests) on all native desktop platforms
   - Generates semantic version (`0.1.<commit_count>`)
   - Uses dependency caching (apt, Emscripten SDK, ccache)
   - Uploads build artifacts (1-day retention)
@@ -458,15 +477,17 @@ Amplitron uses GitHub Actions for continuous integration and deployment:
     - **Windows**: NSIS installer (`Amplitron-Windows-Setup.exe`)
     - **macOS**: DMG disk image (`Amplitron-macOS.dmg`) with ad-hoc code signing
     - **Linux**: Tarball (`Amplitron-Linux-x64.tar.gz`) with launcher script
+    - **Android**: APK (`Amplitron-Android.apk`) — sideload directly
+    - **iOS**: IPA (`Amplitron-iOS.ipa`) — install via AltStore
   - Deploys web demo and download page to GitHub Pages
 
 ### Automatic Releases
 
 Every push to `main` automatically:
-- Builds for Windows, macOS, Linux, and Web (Emscripten)
+- Builds for Windows, macOS, Linux, Android, iOS, and Web (Emscripten)
 - Runs the full test suite (105+ tests)
 - Creates a new release with version `v0.1.<commit_count>`
-- Uploads platform installers to the release
+- Uploads platform installers/packages to the release
 - Deploys the download page and web demo to GitHub Pages
 
 No manual tagging required — just push to `main` and get a release!
