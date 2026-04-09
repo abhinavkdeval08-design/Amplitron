@@ -8,6 +8,8 @@ presets/*
 !presets/02_Classic_Rock_Crunch.json
 !presets/03_Modern_Metal_Lead.json
 !presets/04_Ambient_Swells.json
+!presets/05_Phase_Shift_Lead.json
+!presets/06_Jet_Flanger.json
 recordings/
 
 # IDE

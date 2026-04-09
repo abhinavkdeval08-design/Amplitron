@@ -1,0 +1,131 @@
+{
+  "format_version": 1,
+  "name": "Jet Flanger",
+  "description": "Dramatic jet-plane flanger sweep with strong resonance on a warm clean tone. Inspired by the MXR M117R and Boss BF-2. Striking on open chords, harmonics, and slow single-note lines.",
+  "saved_at": "2026-04-03T12:00:00",
+  "input_gain": 0.75,
+  "output_gain": 0.8,
+  "effects": [
+    {
+      "type": "Noise Gate",
+      "enabled": true,
+      "mix": 1.0,
+      "params": {
+        "Threshold": -60.0,
+        "Attack": 1.0,
+        "Release": 80.0
+      }
+    },
+    {
+      "type": "Compressor",
+      "enabled": true,
+      "mix": 1.0,
+      "params": {
+        "Threshold": -25.0,
+        "Ratio": 3.0,
+        "Attack": 10.0,
+        "Release": 150.0,
+        "Makeup": 2.0
+      }
+    },
+    {
+      "type": "Overdrive",
+      "enabled": false,
+      "mix": 1.0,
+      "params": {
+        "Drive": 1.5,
+        "Tone": 0.7,
+        "Level": 0.7
+      }
+    },
+    {
+      "type": "Distortion",
+      "enabled": false,
+      "mix": 1.0,
+      "params": {
+        "Drive": 2.0,
+        "Tone": 0.6,
+        "Level": 0.5
+      }
+    },
+    {
+      "type": "Equalizer",
+      "enabled": true,
+      "mix": 1.0,
+      "params": {
+        "Bass": 0.5,
+        "Mid": 0.0,
+        "Treble": 1.0,
+        "Presence": 0.5
+      }
+    },
+    {
+      "type": "Chorus",
+      "enabled": false,
+      "mix": 1.0,
+      "params": {
+        "Rate": 1.5,
+        "Depth": 5.0,
+        "Level": 0.5
+      }
+    },
+    {
+      "type": "Phaser",
+      "enabled": false,
+      "mix": 1.0,
+      "params": {
+        "Rate": 0.5,
+        "Depth": 0.7,
+        "Stages": 0.0,
+        "Feedback": 0.5,
+        "Mix": 0.5
+      }
+    },
+    {
+      "type": "Flanger",
+      "enabled": true,
+      "mix": 1.0,
+      "params": {
+        "Rate": 0.15,
+        "Depth": 5.0,
+        "Delay": 2.0,
+        "Feedback": 0.82,
+        "Mix": 0.65
+      }
+    },
+    {
+      "type": "Delay",
+      "enabled": false,
+      "mix": 1.0,
+      "params": {
+        "Time": 350.0,
+        "Feedback": 0.3,
+        "Tone": 0.6,
+        "Level": 0.35
+      }
+    },
+    {
+      "type": "Reverb",
+      "enabled": true,
+      "mix": 1.0,
+      "params": {
+        "Decay": 0.55,
+        "Damp": 0.4,
+        "Level": 0.3
+      }
+    },
+    {
+      "type": "Amp Sim",
+      "enabled": true,
+      "mix": 1.0,
+      "params": {
+        "Model": 3.0,
+        "Gain": 0.45,
+        "Bass": 1.0,
+        "Mid": 0.0,
+        "Treble": 0.5,
+        "Level": 0.75
+      }
+    }
+  ]
+}

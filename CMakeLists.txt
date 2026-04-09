@@ -264,9 +264,11 @@ elseif(IOS)
     target_compile_definitions(Amplitron PRIVATE
         IMGUI_IMPL_OPENGL_ES3
         AMPLITRON_VERSION="${AMPLITRON_VERSION}"
+        AMPLITRON_NO_DESKTOP_SHELL
     )
 
     target_link_libraries(Amplitron PRIVATE
+        SDL2::SDL2main
         SDL2::SDL2-static
         "-framework UIKit"
         "-framework OpenGLES"
