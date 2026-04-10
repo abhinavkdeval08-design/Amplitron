@@ -608,7 +608,7 @@ jobs:
         mkdir -p ios-staging/Payload
         cp -R "$APP" ios-staging/Payload/
         cd ios-staging && zip -r Amplitron.ipa Payload/
-        ls -la ios-staging/
+        ls -la
 
     - name: Upload iOS App
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
